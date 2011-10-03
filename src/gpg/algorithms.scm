@@ -35,7 +35,13 @@
 ;;; Code:
 
 (define-module (gpg algorithms)
-  #:use-module (system foreign))
+  #:export (gpg:pubkey-algo-name
+	    gpg:hash-algo-name
+	    ;; the following are not really intended for user use
+	    gpg:pubkey-algo->integer
+	    gpg:integer->pubkey-algo
+	    gpg:hash-algo->integer
+	    gpg:integer->hash-algo))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
