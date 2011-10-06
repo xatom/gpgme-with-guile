@@ -38,6 +38,7 @@
 ;;; Code:
 
 (use-modules (ice-9 vlist)
+	     (srfi srfi-1)
 	     (ice-9 popen)   		;\
 	     (ice-9 rdelim)		; - for error descriptions
 	     (ice-9 regex))		;/

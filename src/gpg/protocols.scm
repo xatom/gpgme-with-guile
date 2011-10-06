@@ -52,7 +52,7 @@
 (define gpgme-helper-lib
   (dynamic-link
    (if *gpg:debug*
-       "/home/atomx/wd/ggpgme/src/lib/libguile-gpgme"
+       "/home/atomx/wd/gpgme-with-guile/src/lib/libguile-gpgme"
        "libguile-gpgme")))
 
 ;;;;;;;;;;;;;
