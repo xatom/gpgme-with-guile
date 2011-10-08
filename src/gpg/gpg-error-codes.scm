@@ -439,6 +439,11 @@
       ;; it messes up our gathering of the error code reason strings.
       )))
 
+(define *gpg-err:code-dim* 65536)
+;; Error codes are just integers, but they are implemented in a
+;; architecture-dependent way.  This variable is equal to (expt 2 16),
+;; which is 1+ the highest allowable error code.  We will modulo all
+;; error codes by this number, giving us the _real_ error.
 
 (define *gpg:error-codes->errors*
   (alist->vhash *error-code-alist* hashq))
@@ -533,7 +538,8 @@
   "\
 Translate the numeric error code @var{errno} to its corresponding
 error symbol."
-  (cdr (vhash-assq errno *gpg:error-codes->errors*)))
+  (cdr (vhash-assq (modulo errno *gpg-err:code-dim*)
+		   *gpg:error-codes->errors*)))
 
 (define (gpg:error->error-code err)
   "\
