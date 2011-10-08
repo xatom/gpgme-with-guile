@@ -34,14 +34,15 @@
 ;; upstream.  Luckily, most of the errors listed below are _very_ rare
 ;; in the course of using GPGME/G, so hopefully things won't get too
 ;; cryptic.
+;;
+;; The code in this file should only ever be run when it's loaded by
+;; @code{errors.scm}; therefore, we are keeping the module loading to
+;; a minimum---if the module is used by @code{errors.scm}, then it
+;; isn't loaded here.
 
 ;;; Code:
 
-(use-modules (ice-9 vlist)
-	     (srfi srfi-1)
-	     (ice-9 popen)   		;\
-	     (ice-9 rdelim)		; - for error descriptions
-	     (ice-9 regex))		;/
+(use-modules (srfi srfi-1))
 
 (define *error-code-alist*
   (let ((sys-err (ash 1 15)))
@@ -455,100 +456,5 @@
 	*error-code-alist*)
    hashq))
 
-;; gathering error descriptions from the program "gpg-error"
 
-;; start helpers:
-;; The regular expressions used in finding the cruft in the output
-
-(define prefix-rx (make-regexp "^[[:digit:]]+.*[A-Z], "))
-(define colonize-rx
-  ;; get it?  ``colon---ize'' (^_^) (-_-')
-  (make-regexp "(ERR)[_-]"))
-(define hyphenize-rx
-  (make-regexp "_"))
-(define error/string-gap-rx
-  (make-regexp "\\) =.*\\w, "))
-(define trailing-paren-rx
-  (make-regexp "\\)$"))
-
-(define (error-string->pair str)
-  ;; This will be a cascade of regexp match-and-replace ops
-  (call-with-values
-      (lambda ()
-	(let* ((str-w\o-prefix
-		(match:suffix (regexp-exec prefix-rx str)))
-	       (gap-match
-		(regexp-exec error/string-gap-rx str-w\o-prefix))
-	       (err-name
-		(match:prefix gap-match))
-	       (err-str
-		(match:suffix gap-match)))
-	  (values
-	   ;; first create the error symbol
-	   (string->symbol
-	    (string-downcase
-	     (regexp-substitute/global
-	      #f hyphenize-rx
-	      (regexp-substitute #f (regexp-exec
-				     colonize-rx
-				     err-name)
-				 'pre 1 ":" 'post)
-	      'pre "-" 'post)))
-
-	   ;; Now isolate and return the explanatory string
-	   (match:prefix
-	    (regexp-exec
-	     trailing-paren-rx err-str)))))
-    cons))
-
-
-(define (create-error-code-alist)
-  (let* ((output 
-	  (open-input-pipe
-	   (string-append
-	    "gpg-error"
-	    (fold (lambda (n s)
-		    (string-append
-		     " "
-		     (number->string n)
-		     s))
-		  ""
-		  (map (lambda (p)
-			 (car p))
-		       *error-code-alist*)))))
-	 (code-strings
-	  (let loop ((s (read-line output))
-		     (lst '()))
-	    (if (eof-object? s) lst
-		(loop (read-line output)
-		      (cons s lst))))))
-    (close-pipe output)
-    (map error-string->pair code-strings)))
-;; :end helpers
-
-(define *gpg:error-descriptions*
-  (alist->vhash
-   (create-error-code-alist)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Public interface ;;;
-;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define (gpg:error-code->error errno)
-  "\
-Translate the numeric error code @var{errno} to its corresponding
-error symbol."
-  (cdr (vhash-assq (modulo errno *gpg-err:code-dim*)
-		   *gpg:error-codes->errors*)))
-
-(define (gpg:error->error-code err)
-  "\
-Translate the error symbol @var{err} to its corresponding numeric
-error code."
-  (cdr (vhash-assq err *gpg:errors->error-codes*)))
-
-(define (gpg:describe-error err)
-  "\
-Return a string describing the error symbol @var{err}."
-  (vhash-assq err *gpg:error-descriptions*))
 ;;; gpg-err-codes.scm ends here

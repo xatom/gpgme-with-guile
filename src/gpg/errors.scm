@@ -30,6 +30,7 @@
 (define-module (gpg errors)
   #:use-module (system foreign)
   #:use-module (ice-9 format)
+  #:use-module (ice-9 vlist)
   #:export     (gpg:error-code->error
 		gpg:error->error-code
 		gpg:describe-error))
@@ -76,7 +77,51 @@
 	    (pointer-address (gpg:error->pointer e)))))
 
 ;; Let's pull in the vhash of error codes.  They are legion!
-(load "gpg-error-codes.scm")
+;; The following variables are provided in @code{error-codes.scm}:
+;;
+;; @table @samp
+;; @item *error-code-alist*
+;;   An association list with the numeric error codes as keys and
+;;   symbols for each error as the values.
+;;
+;; @item *gpg-err:code-dim*
+;;   The last numeric code allowed, plus one.  Modulo with this to
+;;   extract the @emph{real} error codes from GPGME output.
+;;
+;; @item *gpg:error-codes->errors*
+;;   A vhash of the information in @samp{*error-code-alist*}; created
+;;   from @samp{*error-code-alist*} at load time to provide faster
+;;   look-up times.
+;;
+;; @item *gpg:errors->error-codes*
+;;   A vhash indexed by error symbol rather than error code.  GPGME/G
+;;   is designed to use error symbols in the user-facing interface,
+;;   dispensing with the C idiom of integers-as-enumerations.  This
+;;   structure allows passing error codes back to GPGME if ever
+;;   necessary.
+;; @end table
+(load "error-codes.scm")
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Public interface ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (gpg:error-code->error errno)
+  "\
+Translate the numeric error code @var{errno} to its corresponding
+error symbol."
+  (cdr (vhash-assq (modulo errno *gpg-err:code-dim*)
+		   *gpg:error-codes->errors*)))
+
+(define (gpg:error->error-code err)
+  "\
+Translate the error symbol @var{err} to its corresponding numeric
+error code."
+  (cdr (vhash-assq err *gpg:errors->error-codes*)))
+
+(define (gpg:describe-error err)
+  "\
+Return a string describing the error symbol @var{err}."
+  (vhash-assq err *gpg:error-descriptions*))
 ;;; Error code accessing and translation ;;;
