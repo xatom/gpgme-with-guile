@@ -1,0 +1,42 @@
+;;; GPGME/G : GPGME with Guile
+;;; 
+;;; A Guile binding to the GPGME library
+;;; Error source definitions
+;;;
+;;; Copyright © 2011 Atom X
+;;;
+;;; This library is free software: you can redistribute it and/or
+;;; modify it under the terms of the GNU General Public License as
+;;; published by the Free Software Foundation, either version 3 of the
+;;; License, or (at your option) any later version.
+;;;
+;;; This library is distributed in the hope that it will be useful,
+;;; but WITHOUT ANY WARRANTY; without even the implide warranty of
+;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;;; General Public License for more details.
+;;;
+;;; You should have received a copy of the GNU General Public License
+;;; along with this library.  If not, see
+;;; <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; This file defines all of the error sources provided by
+;; libgpg-error.  There are a great many of them!  All sources and
+;; their associated numeric value have been extracted from
+;; <gpg-error.h> with a basic transformation in the following vein:
+;;
+;;    GPG_ERR_SOURCE_[A-Z_]+[A-Z] -> gpg-err-source:[a-z-]+[a-z]
+;;
+;; Example: GPG_ERR_SOURCE_UNKNOWN -> gpg-err-source:unknown
+;;
+;; Every effort has been made to document each source, but there are
+;; invariably some omissions due to incomplete documentation upstream.
+;; course of using GPGME/G, so hopefully things won't get too cryptic.
+;;
+;; The code in this file should only ever be run when it's loaded by
+;; @code{errors.scm}; therefore, we are keeping the module loading to
+;; a minimum---if the module is used by @code{errors.scm}, then it
+;; isn't loaded here.
+
+;;; Code:

@@ -1,6 +1,7 @@
 ;;; GPGME/G : GPGME with Guile
 ;;; 
 ;;; A Guile binding to the GPGME library
+;;; Error code definitions
 ;;;
 ;;; Copyright © 2011 Atom X
 ;;;

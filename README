@@ -1,0 +1,4 @@
+This is GPGME/Guile, read "GPGME-with-Guile", a Guile Scheme binding
+to the GPGME ("GPG Made Easy") cryptographic library.
+
+At this time, GPGME/Guile is woefully underdocumented.
