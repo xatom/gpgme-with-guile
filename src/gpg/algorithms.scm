@@ -3,7 +3,7 @@
 ;;; A Guile binding to the GPGME library
 ;;; Algorithm handling
 ;;;
-;;; Copyright © 2011 Atom X
+;;; Copyright © 2011, 2012 Atom X
 ;;;
 ;;; This library is free software: you can redistribute it and/or
 ;;; modify it under the terms of the GNU General Public License as
@@ -26,11 +26,11 @@
 ;; hashes.
 ;;
 ;; For the most part, this module does not actually use the underlying
-;; GPGME library since the functions and datastructurens used by GPGME
+;; GPGME library since the functions and datastructures used by GPGME
 ;; are very simple; implementing them in Scheme is both simpler and
 ;; faster than calling to the underlying C library.  Having said that,
 ;; we provide translation procedures for passing algorithm information
-;; to other GPGME functions
+;; to other GPGME functions.
 
 ;;; Code:
 
@@ -105,7 +105,7 @@ Translates the public key algorithm symbol @var{algo} to an integer;
 this function should only be used if interfacing to GPGME directly.
 
 If @var{algo} is not a recognized public key algorithm, returns
-@var{#f}."
+@code{#f}."
   (assq-ref *gpg:public-key->integer* algo))
 
 
@@ -116,7 +116,7 @@ Translates the integer @var{num} to its corresponding public key
 algorithm symbol; this function should only be used if interfacing
 to GPGME directly.
 
-If @var{num} is not a recognized value, returns @var{#f}."
+If @var{num} is not a recognized value, returns @code{#f}."
   (assq-ref *gpg:public-key-algorithm-enum* num))
 
 
@@ -180,7 +180,7 @@ string can be used to output the name of the hash algorithm to the
 user.
 
 If @var{algo} is not a recognized algorithm, returns @code{#f}."
-  (assq-ref *gpg:hash->name algo))
+  (assq-ref *gpg:hash->name* algo))
 
 
 ;; Translate hash symbol -> integer (for interfacing to GPGME)
@@ -189,7 +189,7 @@ If @var{algo} is not a recognized algorithm, returns @code{#f}."
 Translates the hash algorithm symbol @var{algo} to an integer; this
 function should only be used if interfacing to GPGME directly.
 
-If @var{algo} is not a recognized hash algorithm, returns @var{#f}."
+If @var{algo} is not a recognized hash algorithm, returns @code{#f}."
   (assq-ref *gpg:hash->integer* algo))
 
 
@@ -200,7 +200,7 @@ Translates the integer @var{num} to its corresponding hash algorithm
 symbol; this function should only be used if interfacing to GPGME
 directly.
 
-If @var{num} is not a recognized value, returns @var{#f}."
+If @var{num} is not a recognized value, returns @code{#f}."
   (assq-ref *gpg:hash-algorithm-enum* num))
 
 ;;; algorithms.scm ends here

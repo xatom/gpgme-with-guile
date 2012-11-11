@@ -159,8 +159,7 @@ or @code{#f} if the protocol name is not valid."
   (let ((gpg-version (pointer->procedure
 		      int
 		      (dynamic-func "gpgme_engine_check_version" gpgme-lib)
-		      (list int)
-		      )))
+		      (list int))))
     (lambda (proto)
       "\
 Verifies that the engine implementing the protocol @var{proto} is

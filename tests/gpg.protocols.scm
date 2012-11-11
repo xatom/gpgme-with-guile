@@ -1,9 +1,9 @@
-;;; GPGME/G : GPGME with Guile
+;;; GPGME/Guile : GPGME with Guile
 ;;; 
 ;;; A Guile binding to the GPGME library
 ;;; Unit-tests for (gpg protocols)
 ;;;
-;;; Copyright © 2011 Atom X
+;;; Copyright © 2011, 2012 Atom X
 ;;;
 ;;; This library is free software: you can redistribute it and/or
 ;;; modify it under the terms of the GNU General Public License as

@@ -1,8 +1,8 @@
-;;; GPGME/G : GPGME with Guile
+;;; GPGME/Guile : GPGME with Guile
 ;;; 
 ;;; A Guile binding to the GPGME library
 ;;;
-;;; Copyright © 2011 Atom X
+;;; Copyright © 2011, 2012 Atom X
 ;;;
 ;;; This library is free software: you can redistribute it and/or
 ;;; modify it under the terms of the GNU General Public License as
@@ -40,14 +40,17 @@
 
 (define-module (gpg)
   #:use-module (system foreign)
-  #:use-module (ice-9 format))
+  #:use-module (ice-9 format)
+  #:use-module (ice-9 i18n)
+  #:export (gpg:check-version
+	    gpg:context?))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Pull in libraries ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define gpgme-lib     (dynamic-link "libgpgme"))
+(define gpgme-lib     (dynamic-link "libgpgme-pthread"))
 (define gpg-error-lib (dynamic-link "libgpg-error"))
 
 ;;;;;;;;;;;;;
@@ -62,7 +65,8 @@
   gpg:pointer->context
   gpg:context->pointer
   (lambda (c p)
-    (format p "#<gpg:context ")))
+    (format p "#<gpg:context @~x>"
+	    (gpg:context->pointer c))))
 
 
 
@@ -73,7 +77,7 @@
 (define gpg:check-version
   (let ((check (pointer->procedure
 		'*
-		(dynamic-func "gpgme_check_version")
+		(dynamic-func "gpgme_check_version" gpgme-lib)
 		'(*))))
     (lambda version
       "\
@@ -96,12 +100,35 @@ version number if successful, or throwing an exception otherwise."
 			   #f
 			   "\
 Underlying GPGME library does not meet version requirement of ~s"
-			   (car version))
+			   (car version) #f)
 		(pointer->string ver)))))))
 
 
 (define gpg:set-locale
-  )
+  (let ((setloc (pointer->procedure
+		 '*
+		 (dynamic-func "gpgme_set_locale" gpgme-lib)
+		 (list '* int '*))))
+    (lambda (locale)
+      "\
+Returns a new @code{gpg:context} whose locale settings are the same as
+those of @var{locale}.
+
+@var{locale} is a an object as returned by the @code{make-locale}
+function of the @code{(ice-9 i18n)} module shipped with Guile, which
+will likewise fulfill the predicate @code{locale?}. ")))
+
+
+(define gpg:make-context
+  (let ((gpgme-new (pointer->procedure
+		    '*
+		    (dynamic-func "gpgme_new" gpgme-lib)
+		    (list '*))))
+    (lambda ()
+      "\
+Return a new @code{gpg:context}.
+
+")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Initialize the library ;;;
