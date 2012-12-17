@@ -54,8 +54,8 @@
 ;;
 ;; @end table   
 ;;
-;; At this time these tools are for GPGME/G developers' use only; they
-;; require the libgpg-error sources to work properly, which users
+;; At this time these tools are for GPGME/Guile developers' use only;
+;; they require the libgpg-error sources to work properly, which users
 ;; cannot be expected to have on hand.  As such, the files
 ;; @samp{error-sources.scm} and @samp{error-codes.scm} are to be
 ;; distributed complete with each release, or possibly even in the
@@ -66,7 +66,8 @@
 (use-modules (ice-9 popen)
 	     (ice-9 rdelim)
 	     (ice-9 regex)
-	     (ice-9 pretty-print))
+	     (ice-9 pretty-print)
+	     (srfi srfi-1))
 
 
 ;; Grabbing the info from the libgpg-error source
@@ -116,7 +117,6 @@
 	(if type-tag type-tag "gpg-err")
 	":" val-tag)
        'pre "-" 'post)))))
-
 
 (define (make-error-list match)
   (if (regexp-match? match)

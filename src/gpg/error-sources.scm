@@ -40,3 +40,8 @@
 ;; isn't loaded here.
 
 ;;; Code:
+
+(use-modules (srfi srfi-1))
+
+(define *error-source-alist*
+  )
