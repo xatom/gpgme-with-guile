@@ -33,16 +33,16 @@
   #:use-module (ice-9 format)
   #:use-module (gpg errors)
   #:use-module (srfi srfi-1)
-  #:export (gpg:check-engine-version
-	    gpg:get-protocol-name
-	    gpg:get-engine-info
-	    gpg:set-engine-info
-	    gpg:toggle-debug))
+  #:export (check-engine-version
+	    get-protocol-name
+	    get-engine-info
+	    set-engine-info
+	    toggle-debug))
 
 
-(define *gpg:debug* #t)
-(define (gpg:toggle-debug)
-  (set! *gpg:debug* (not *gpg:debug*)))
+(define *debug* #t)
+(define (toggle-debug)
+  (set! *debug* (not *debug*)))
 
 ;;;;;;;;;;;;;;;;;
 ;;; Libraries ;;;
@@ -51,7 +51,7 @@
 (define gpgme-lib (dynamic-link "libgpgme"))
 (define gpgme-helper-lib
   (dynamic-link
-   (if *gpg:debug*
+   (if *debug*
        "/home/atomx/wd/gpgme-with-guile/src/lib/libguile-gpgme"
        "libguile-gpgme")))
 
@@ -63,7 +63,7 @@
 ;; binding, but GPGME defines gpgme_protocol_t as an enum.  Thus,
 ;; we define an association list of the protocol symbols to numerical
 ;; values for passing into and receiving out of GPGME functions.
-(define *gpg:protocol-enum*
+(define *protocol-enum*
   ;; coincides with gpgme_protocol_t
   '((openpgp  . 0)
     (cms      . 1)
@@ -74,13 +74,13 @@
     (default  . 254)
     (unknown  . 255)))
 
-(define *gpg:protocol-lookup-by-number*
+(define *protocol-lookup-by-number*
   (map (lambda (lst)
 	 (cons (cdr lst) (car lst)))
-       *gpg:protocol-enum*))
+       *protocol-enum*))
 
 ;;; Useful data structures
-(define *gpg:protocol-list*
+(define *protocol-list*
   ;; Association list of accepted encryption protocols
   ;; and their string representations
   '((openpgp  . "OpenPGP")
@@ -133,13 +133,13 @@
 
 (define-wrapped-pointer-type
   ;; this is for passing gpgme_engine_info_t in and out of GPGME
-  gpg:engine-info
-  gpg:engine-info?
-  pointer->gpg:engine-info
-  gpg:engine-info->pointer
+  engine-info
+  engine-info?
+  pointer->engine-info
+  engine-info->pointer
   (lambda (ei p)
     (format p
-      "#<gpg:engine-info @~x>"
+      "#<engine-info @~x>"
       (pointer-address ei))))
 
 
@@ -149,13 +149,13 @@
 ;;; Functions ;;;
 ;;;;;;;;;;;;;;;;;
 
-(define (gpg:get-protocol-name gp)
+(define (get-protocol-name gp)
   "\
 Returns the protocol name of the protocol @var{gp} as a string,
 or @code{#f} if the protocol name is not valid."
-  (assq-ref *gpg:protocol-list* gp))
+  (assq-ref *protocol-list* gp))
 
-(define gpg:check-engine-version
+(define check-engine-version
   (let ((gpg-version (pointer->procedure
 		      int
 		      (dynamic-func "gpgme_engine_check_version" gpgme-lib)
@@ -168,20 +168,20 @@ the underlying GPGME library.
 
 This function returns @code{#t} if the engine is available; otherwise
 it raises an error with the key @code{gpg-err:inv-engine}."
-      (if (zero? (gpg-version (assq-ref *gpg:protocol-enum* proto)))
-	  ;; protocols are stored in the alist *gpg:protocol-enum*
+      (if (zero? (gpg-version (assq-ref *protocol-enum* proto)))
+	  ;; protocols are stored in the alist *protocol-enum*
 	  ;; along with their integer representation, which is used
 	  ;; by GPGME
 	  #t
-	  (scm-error 'gpg-err:inv-engine "gpg:engine-check-version"
+	  (scm-error 'gpg-err:inv-engine "engine-check-version"
 		     "The encryption protocol \"~a\" is not available."
 		     (list proto) #f)))))
 
 
-;;; helper functions for gpg:get-engine-info
+;;; helper functions for get-engine-info
 (define (struct->engine-info-alist st)
   "\
-@var{st} is a wrapped `gpg:engine-info' object, which is a hygienic
+@var{st} is a wrapped `engine-info' object, which is a hygienic
 wrapper for the C struct type `gpgme_engine_info_t.  @var{st} gets
 parsed into an alist with the keys `next', `protocol', `file-name',
 `version', `required-version', and `home-dir', all of which are
@@ -217,12 +217,12 @@ default value.
 
 Consider this alist immutable; there's no facility provided for the
 user to alter these values in the underlying GPGME library."
-  (if *gpg:debug*
+  (if *debug*
       (begin
 	(display "*** Translating engine info ***\n" (current-error-port))))
-  (and (gpg:engine-info? st)
+  (and (engine-info? st)
        (let ((lst (parse-c-struct
-		   (gpg:engine-info->pointer st)
+		   (engine-info->pointer st)
 		   (list '*	      ;pointer to another gpgme_engine_info_t
 			 unsigned-int ;represents the gpgme_protocol_t enum
 			 '*	      ;string pointer file_name
@@ -234,7 +234,7 @@ user to alter these values in the underlying GPGME library."
 	 ;; NOTE: the struct value `next' is a _pointer to another
 	 ;; gpgme_engine_info_t struct_.  Therefore, we'll call this
 	 ;; function recursively until we hit a null pointer
-	 (if *gpg:debug*
+	 (if *debug*
 	     (begin
 	      (display "   Bustin' out an alist!\n" (current-error-port))
 	      (display "      The list is: " (current-error-port))
@@ -247,9 +247,9 @@ user to alter these values in the underlying GPGME library."
 		    (if (eq? val %null-pointer)
 			'()
 			(struct->engine-info-alist
-			 (pointer->gpg:engine-info val))))
+			 (pointer->engine-info val))))
 		   ((protocol)
-		    (assq-ref *gpg:protocol-lookup-by-number* val))
+		    (assq-ref *protocol-lookup-by-number* val))
 		   ((file-name version required-version home-dir)
 		    (if (eq? val %null-pointer)
 			'()
@@ -279,10 +279,10 @@ GPGME library.  Does the opposite of
 		   ((next)
 		    (if (null? v)
 			%null-pointer
-			(gpg:engine-info->pointer
+			(engine-info->pointer
 			 (engine-info-alist->struct v))))
 		   ((protocol)
-		    (assq-ref *gpg:protocol-enum* v))
+		    (assq-ref *protocol-enum* v))
 		   ((file-name version required-version home-dir)
 		    (if (null? v)
 			%null-pointer
@@ -290,12 +290,12 @@ GPGME library.  Does the opposite of
 	     lst))))
 
 
-(define gpg:get-engine-info
+(define get-engine-info
   (let ((gei (pointer->procedure
 	      '*
 	      (dynamic-func "retrieve_engine_info" gpgme-helper-lib)
 	      (list '*))))
-    (if *gpg:debug*
+    (if *debug*
 	(display "Attempting to get engine info\n" (current-error-port)))
     (lambda ()
       "\
@@ -345,22 +345,22 @@ default value.
 @end table
 
 Consider this alist immutable--engine configuration is handled in a
-different fashion by the function @code{gpg:set-engine-info}."
+different fashion by the function @code{set-engine-info}."
       (call/cc
        (lambda (kont)
-	 (let ((result (pointer->gpg:engine-info
+	 (let ((result (pointer->engine-info
 			;; we don't do a type check since an error is raised
 			;; anyway if we don't have a valid engine object
 			(catch #t
 			  (lambda ()
-			    (if *gpg:debug*
+			    (if *debug*
 				(display "Trying to retrieve the engine info\n"
 					 (current-error-port)))
 			    (let ((callback (procedure->pointer
 					     '*
-					     gpg:error-code->error
+					     error-code->error
 					     (list '*))))
-			      (if *gpg:debug*
+			      (if *debug*
 				  (begin
 				   (display "Created callback: " (current-error-port))
 				   (display callback (current-error-port))
@@ -369,7 +369,7 @@ different fashion by the function @code{gpg:set-engine-info}."
 			  (lambda (key routine message . rest)
 			    (format (current-error-port)
 				    "\
-`gpg:get-engine-info' failed with the following key and message:
+`get-engine-info' failed with the following key and message:
 
 ~3@tKey: ~s
 ~3@tMessage: ~s\n"
@@ -377,11 +377,11 @@ different fashion by the function @code{gpg:set-engine-info}."
 			    (kont #f))))))
 	   ;; If we've gotten all the way out here, it's time to make
 	   ;; the association list
-	   (if *gpg:debug*
+	   (if *debug*
 	       (display "Got info, now translating.\n" (current-error-port)))
 	   (struct->engine-info-alist result)))))))
 
-(define gpg:set-engine-info
+(define set-engine-info
   (let ((sei (pointer->procedure
 	      unsigned-int
 	      (dynamic-func "gpgme_set_engine_info" gpgme-lib)
@@ -397,23 +397,23 @@ configuration can be found.  If @var{home-dir} is not supplied, the
 engine's default will be used.
 
 The new defaults for a given engine are not applied to
-@code{gpg:context} objects already in use.
+@code{context} objects already in use.
 
 If successful, a new association list is returned á la
-@code{gpg:get-engine-info}; otherwise an error is thrown with a
+@code{get-engine-info}; otherwise an error is thrown with a
 key describing the problem."
-      (let ((result (sei (assq-ref *gpg:protocol-enum* proto)
+      (let ((result (sei (assq-ref *protocol-enum* proto)
 			 (string->pointer file-name)
 			 (if home-dir
 			     (string->pointer home-dir)
 			     %null-pointer))))
 	(if (zero? result)
-	    (gpg:get-engine-info)
+	    (get-engine-info)
 	    (scm-error
-	     (gpg:error-code->error result)
-	     "gpg:set-engine-info"
+	     (error-code->error result)
+	     "set-engine-info"
 	     "Unable to set ~a engine information: ~a\n"
-	     (list (gpg:describe-error
-		    (gpg:error-code->error result)))
+	     (list (describe-error
+		    (error-code->error result)))
 	     #f))))))
 

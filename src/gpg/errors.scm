@@ -31,9 +31,9 @@
   #:use-module (system foreign)
   #:use-module (ice-9 format)
   #:use-module (ice-9 vlist)
-  #:export     (gpg:error-code->error
-		gpg:error->error-code
-		gpg:describe-error))
+  #:export     (error-code->error
+		error->error-code
+		describe-error))
 
 (define gpg-error-lib (dynamic-link "libgpg-error"))
 
@@ -44,37 +44,37 @@
 ;;; Errors
 (define-wrapped-pointer-type
   ;; gpgme_err_code_t
-  gpg:error-code
-  gpg:error-code?
-  gpg:pointer->error-code
-  gpg:error-code->pointer
+  error-code
+  error-code?
+  pointer->error-code
+  error-code->pointer
   (lambda (ec p)
-    (format p "#<gpg:error-code ~d x~x>"
-	    (gpg:error-code->errno ec)
-	    (pointer-address (gpg:error-code->pointer ec)))))
+    (format p "#<error-code ~d x~x>"
+	    (error-code->errno ec)
+	    (pointer-address (error-code->pointer ec)))))
 
 (define-wrapped-pointer-type
   ;; gpgme_err_source_t
-  gpg:error-source
-  gpg:error-source?
-  gpg:pointer->error-source
-  gpg:error-source->pointer
+  error-source
+  error-source?
+  pointer->error-source
+  error-source->pointer
   (lambda (es p)
-    (format p "#<gpg:error-source ~d x~x>"
-	    (gpg:error-source-value es)
-	    (pointer-address (gpg:error-source->pointer es)))))
+    (format p "#<error-source ~d x~x>"
+	    (error-source-value es)
+	    (pointer-address (error-source->pointer es)))))
 
 (define-wrapped-pointer-type
   ;; gpgme_error_t
-  gpg:error
-  gpg:error?
-  gpg:pointer->error
-  gpg:error->pointer
+  error
+  error?
+  pointer->error
+  error->pointer
   (lambda (e p)
-    (format p "#<gpg:error source: ~a code: ~d x~x>"
-	    (gpg:error-source-value (gpg:get-error-source e))
-	    (gpg:error-code->errno (gpg:get-error-code e))
-	    (pointer-address (gpg:error->pointer e)))))
+    (format p "#<error source: ~a code: ~d x~x>"
+	    (error-source-value (get-error-source e))
+	    (error-code->errno (get-error-code e))
+	    (pointer-address (error->pointer e)))))
 
 ;; Let's pull in the vhash of error codes.  They are legion!
 ;; The following variables are provided in @code{error-codes.scm}:
@@ -88,12 +88,12 @@
 ;;   The last numeric code allowed, plus one.  Modulo with this to
 ;;   extract the @emph{real} error codes from GPGME output.
 ;;
-;; @item *gpg:error-codes->errors*
+;; @item *error-codes->errors*
 ;;   A vhash of the information in @samp{*error-code-alist*}; created
 ;;   from @samp{*error-code-alist*} at load time to provide faster
 ;;   look-up times.
 ;;
-;; @item *gpg:errors->error-codes*
+;; @item *errors->error-codes*
 ;;   A vhash indexed by error symbol rather than error code.  GPGME/G
 ;;   is designed to use error symbols in the user-facing interface,
 ;;   dispensing with the C idiom of integers-as-enumerations.  This
@@ -107,21 +107,21 @@
 ;;; Public interface ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (gpg:error-code->error errno)
+(define (error-code->error errno)
   "\
 Translate the numeric error code @var{errno} to its corresponding
 error symbol."
   (cdr (vhash-assq (modulo errno *gpg-err:code-dim*)
-		   *gpg:error-codes->errors*)))
+		   *error-codes->errors*)))
 
-(define (gpg:error->error-code err)
+(define (error->error-code err)
   "\
 Translate the error symbol @var{err} to its corresponding numeric
 error code."
-  (cdr (vhash-assq err *gpg:errors->error-codes*)))
+  (cdr (vhash-assq err *errors->error-codes*)))
 
-(define (gpg:describe-error err)
+(define (describe-error err)
   "\
 Return a string describing the error symbol @var{err}."
-  (vhash-assq err *gpg:error-descriptions*))
+  (vhash-assq err *error-descriptions*))
 ;;; Error code accessing and translation ;;;

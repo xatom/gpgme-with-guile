@@ -42,8 +42,8 @@
   #:use-module (system foreign)
   #:use-module (ice-9 format)
   #:use-module (ice-9 i18n)
-  #:export (gpg:check-version
-	    gpg:context?))
+  #:export (check-version
+	    context?))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -60,13 +60,13 @@
 ;;; Context
 (define-wrapped-pointer-type
   ;; gpgme_ctx_t
-  gpg:context
-  gpg:context?
-  gpg:pointer->context
-  gpg:context->pointer
+  context
+  context?
+  pointer->context
+  context->pointer
   (lambda (c p)
     (format p "#<gpg:context @~x>"
-	    (gpg:context->pointer c))))
+	    (context->pointer c))))
 
 
 
@@ -74,7 +74,7 @@
 ;;; Internal functions ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define gpg:check-version
+(define check-version
   (let ((check (pointer->procedure
 		'*
 		(dynamic-func "gpgme_check_version" gpgme-lib)
@@ -104,7 +104,7 @@ Underlying GPGME library does not meet version requirement of ~s"
 		(pointer->string ver)))))))
 
 
-(define gpg:set-locale
+(define set-locale
   (let ((setloc (pointer->procedure
 		 '*
 		 (dynamic-func "gpgme_set_locale" gpgme-lib)
@@ -119,7 +119,7 @@ function of the @code{(ice-9 i18n)} module shipped with Guile, which
 will likewise fulfill the predicate @code{locale?}. ")))
 
 
-(define gpg:make-context
+(define make-context
   (let ((gpgme-new (pointer->procedure
 		    '*
 		    (dynamic-func "gpgme_new" gpgme-lib)
