@@ -1,0 +1,73 @@
+;;; GPGME/Guile : GPGME with Guile
+;;; 
+;;; A Guile binding to the GPGME library
+;;; Error code definitions
+;;;
+;;; Copyright © 2011, 2012 Atom X
+;;;
+;;; This library is free software: you can redistribute it and/or
+;;; modify it under the terms of the GNU General Public License as
+;;; published by the Free Software Foundation, either version 3 of the
+;;; License, or (at your option) any later version.
+;;;
+;;; This library is distributed in the hope that it will be useful,
+;;; but WITHOUT ANY WARRANTY; without even the implide warranty of
+;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;;; General Public License for more details.
+;;;
+;;; You should have received a copy of the GNU General Public License
+;;; along with this library.  If not, see
+;;; <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; This file defines all of the error codes provided by libgpg-error.
+;; There are a great many of them!  All errors and their associated
+;; numeric value have been extracted from <gpg-error.h> with a basic
+;; transformation in the following vein:
+;;
+;;    GPG_ERR_[A-Z_]+[A-Z] -> error-code/[a-z-]+[a-z]
+;;
+;; Example: GPG_ERR_NO_VALUE -> error-code/no-value
+;;
+;; Every effort has been made to document each error code, but there
+;; are invariably some omissions due to incomplete documentation
+;; upstream.  Luckily, most of the errors listed below are _very_ rare
+;; in the course of using GPGME/G, so hopefully things won't get too
+;; cryptic.
+;;
+;; The code in this file should only ever be run when it's loaded by
+;; @code{errors.scm}; therefore, we are keeping the module loading to
+;; a minimum---if the module is used by @code{errors.scm}, then it
+;; isn't loaded here.
+
+;;; Code:
+
+(define-record-type gpg-error-code
+  (make-error-code code description)
+  error-code?
+  (code get-code-value)
+  (description get-code-description))
+
+
+;;; BEGIN ERROR CODES
+@@ERROR_CODE_DECLS@@
+;;; END ERROR CODES
+(define *error-code-dim* @@ERROR_CODE_DIM@@)
+;; Error codes are just integers, but they are implemented in a
+;; architecture-dependent way.  This variable is equal to (expt 2 16),
+;; which is 1+ the highest allowable error code.  We will modulo all
+;; error codes by this number, giving us the _real_ error.
+
+(define *error-codes->errors*
+  (alist->vhash *error-code-alist* hashq))
+
+(define *errors->error-codes*
+  (alist->vhash
+   (map (lambda (lst)
+	  (cons (cdr lst) (car lst)))
+	*error-code-alist*)
+   hashq))
+
+
+;;; error-codes.scm ends here

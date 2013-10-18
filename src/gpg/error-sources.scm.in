@@ -26,9 +26,9 @@
 ;; their associated numeric value have been extracted from
 ;; <gpg-error.h> with a basic transformation in the following vein:
 ;;
-;;    GPG_ERR_SOURCE_[A-Z_]+[A-Z] -> gpg-err-source:[a-z-]+[a-z]
+;;    GPG_ERR_SOURCE_[A-Z_]+[A-Z] -> error-source/[a-z-]+[a-z]
 ;;
-;; Example: GPG_ERR_SOURCE_UNKNOWN -> gpg-err-source:unknown
+;; Example: GPG_ERR_SOURCE_UNKNOWN -> error-source/unknown
 ;;
 ;; Every effort has been made to document each source, but there are
 ;; invariably some omissions due to incomplete documentation upstream.
@@ -41,7 +41,13 @@
 
 ;;; Code:
 
-(use-modules (srfi srfi-1))
+(define-immutable-record-type gpg-error-source
+  (make-error-source source description)
+  error-source?
+  (source get-source-value)
+  (description get-source-description))
 
-(define *error-source-alist*
-  )
+;;; BEGIN ERROR SOURCES
+@@ERROR_SOURCE_DECLS@@
+;;; END ERROR SOURCES
+(define *error-source-dim* @@ERROR_SOURCE_DIM@@)
