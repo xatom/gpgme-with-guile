@@ -8,7 +8,7 @@ exec guile -e main -s "$0" "$@"
 ;;; A Guile binding to the GPGME library
 ;;; Error setup tools
 ;;;
-;;; Copyright © 2011 Atom X
+;;; Copyright © 2011, 2013 Atom X Zane
 ;;;
 ;;; This library is free software: you can redistribute it and/or
 ;;; modify it under the terms of the GNU General Public License as
@@ -182,6 +182,82 @@ exec guile -e main -s "$0" "$@"
              (string-match "^[[:space:]]*GPG_ERR_.*[[:digit:]],?" line))
            lines)))
 
+(define (output-error-code-dim input dim-value)
+  (regexp-substitute
+   #f (string-match "@@ERROR_CODE_DIM@@" input)
+   'pre dim-value 'post))
+
+(define (output-error-code-decls input decls)
+  (regexp-substitute
+   #f (string-match "@@ERROR_CODE_DECLS@@" input)
+   'pre decls 'post))
+
+(define (output-error-code-lookup input lookups)
+  (let ((l (string-append
+            "   `"
+            (substring
+             (regexp-substitute/global
+              #f
+              "(error-code/)"
+              (with-output-to-string
+                (lambda ()
+                  (pretty-print
+                   (let loop ((rest lookups)
+                              (done '()))
+                     (if (null? rest)
+                         (reverse done)
+                         (loop (cdr rest)
+                               (if (string= (caar rest) "GPG_ERR_CODE_DIM")
+                                   done
+                                   (cons
+                                    (cons (cdar rest)
+                                          (c-error-name->symbol (caar rest)))
+                                    done)))))
+                   #:per-line-prefix "    ")))
+              'pre "," 1 'post)
+             4))))
+    (regexp-substitute
+     #f (string-match "@@ERROR_CODE_LOOKUP@@" input)
+     'pre l 'post)))
+
+(define (output-error-source-dim input dim-value)
+  (regexp-substitute
+   #f (string-match "@@ERROR_SOURCE_DIM@@" input)
+   'pre dim-value 'post))
+
+(define (output-error-source-decls input decls)
+  (regexp-substitute
+   #f (string-match "@@ERROR_SOURCE_DECLS@@" input)
+   'pre decls 'post))
+
+(define (output-error-source-lookup input lookups)
+  (let ((l (string-append
+            "   `"
+            (substring
+             (regexp-substitute/global
+              #f
+              "(error-source/)"
+              (with-output-to-string
+                (lambda ()
+                  (pretty-print
+                   (let loop ((rest lookups)
+                              (done '()))
+                     (if (null? rest)
+                         (reverse done)
+                         (loop (cdr rest)
+                               (if (string= (caar rest) "GPG_ERR_SOURCE_DIM")
+                                   done
+                                   (cons
+                                    (cons (cdar rest)
+                                          (c-error-name->symbol (caar rest)))
+                                    done)))))
+                   #:per-line-prefix "    ")))
+              'pre "," 1 'post)
+             4))))
+    (regexp-substitute
+     #f (string-match "@@ERROR_SOURCE_LOOKUP@@" input)
+     'pre l 'post)))
+
 (define (main . args)
   (let* ((error-decls
           (extract-error-decls
@@ -207,7 +283,7 @@ exec guile -e main -s "$0" "$@"
                            (car defn)
                            "GPG_ERR_CODE_DIM"))
                      (pretty-print (output-error-code-define defn))
-                     (newline)))
+                     (display "")))
                error-codes))))
          ;; error sources
          (error-sources (extract-error-sources error-decls))
@@ -219,17 +295,19 @@ exec guile -e main -s "$0" "$@"
                  (if (not (string=
                            (car defn)
                            "GPG_ERR_SOURCE_DIM"))
-                  (pretty-print (output-error-source-define defn))
-                  (newline)))
+                     (pretty-print (output-error-source-define defn))
+                     (display "")))
                error-sources))))
          ;; input files
          (error-codes.scm.in
-          (let* ((p (open-input-file "../src/gpg/error-codes.scm.in" #:binary #t))
+          (let* ((p (open-input-file
+                     "../src/gpg/error-codes.scm.in" #:binary #t))
                  (bv (get-bytevector-all p)))
             (close-port p)
             (utf8->string bv)))
          (error-sources.scm.in
-          (let* ((p (open-input-file "../src/gpg/error-sources.scm.in" #:binary #t))
+          (let* ((p (open-input-file
+                     "../src/gpg/error-sources.scm.in" #:binary #t))
                  (bv (get-bytevector-all p)))
             (close-port p)
             (utf8->string bv)))
@@ -241,28 +319,24 @@ exec guile -e main -s "$0" "$@"
     (put-bytevector
      error-codes.scm
      (string->utf8
-      (regexp-substitute
-       #f (string-match
-           "@@ERROR_CODE_DECLS@@"
-           (regexp-substitute
-            #f (string-match "@@ERROR_CODE_DIM@@" error-codes.scm.in)
-            'pre (number->string
-                  (assoc-ref error-codes "GPG_ERR_CODE_DIM"))
-            'post))
-       'pre error-code-defines 'post)))
+      (output-error-code-lookup
+       (output-error-code-decls
+        (output-error-code-dim
+         error-codes.scm.in
+         (number->string (assoc-ref error-codes "GPG_ERR_CODE_DIM")))
+        error-code-defines)
+       error-codes)))
     (close-port error-codes.scm)
     (put-bytevector
      error-sources.scm
      (string->utf8
-      (regexp-substitute
-       #f (string-match
-           "@@ERROR_SOURCE_DECLS@@"
-           (regexp-substitute
-            #f (string-match "@@ERROR_SOURCE_DIM@@" error-sources.scm.in)
-            'pre (number->string
-                  (assoc-ref error-sources "GPG_ERR_SOURCE_DIM"))
-            'post))
-       'pre error-source-defines 'post)))
+      (output-error-source-lookup
+       (output-error-source-decls
+        (output-error-source-dim
+         error-sources.scm.in
+         (number->string (assoc-ref error-sources "GPG_ERR_SOURCE_DIM")))
+        error-source-defines)
+       error-sources)))
     (close-port error-sources.scm)))
 
 ;; Local Variables:

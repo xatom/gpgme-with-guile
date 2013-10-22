@@ -31,9 +31,17 @@
   #:use-module (system foreign)
   #:use-module (ice-9 format)
   #:use-module (ice-9 vlist)
-  #:export     (error-code->error
-		error->error-code
-		describe-error))
+  #:use-module (srfi srfi-9 gnu)
+  #:export     (*default-error-source*
+                error-code
+                error-code-value
+                error-code-description
+                error-source
+                error-source-value
+                error-source-description
+                error-object?
+                make-error
+                system-error->error))
 
 (define gpg-error-lib (dynamic-link "libgpg-error"))
 
@@ -41,87 +49,117 @@
 ;;; Types ;;;
 ;;;;;;;;;;;;;
 
-;;; Errors
-(define-wrapped-pointer-type
-  ;; gpgme_err_code_t
-  error-code
-  error-code?
-  pointer->error-code
-  error-code->pointer
-  (lambda (ec p)
-    (format p "#<error-code ~d x~x>"
-	    (error-code->errno ec)
-	    (pointer-address (error-code->pointer ec)))))
-
-(define-wrapped-pointer-type
-  ;; gpgme_err_source_t
-  error-source
-  error-source?
-  pointer->error-source
-  error-source->pointer
-  (lambda (es p)
-    (format p "#<error-source ~d x~x>"
-	    (error-source-value es)
-	    (pointer-address (error-source->pointer es)))))
-
-(define-wrapped-pointer-type
-  ;; gpgme_error_t
-  error
+;; Errors
+(define-immutable-record-type gpg-error
+  (make-gpg-error code source)
   error?
-  pointer->error
-  error->pointer
-  (lambda (e p)
-    (format p "#<error source: ~a code: ~d x~x>"
-	    (error-source-value (get-error-source e))
-	    (error-code->errno (get-error-code e))
-	    (pointer-address (error->pointer e)))))
+  (code get-error-code)
+  (source get-error-source))
 
-;; Let's pull in the vhash of error codes.  They are legion!
-;; The following variables are provided in @code{error-codes.scm}:
-;;
-;; @table @samp
-;; @item *error-code-alist*
-;;   An association list with the numeric error codes as keys and
-;;   symbols for each error as the values.
-;;
-;; @item *gpg-err:code-dim*
-;;   The last numeric code allowed, plus one.  Modulo with this to
-;;   extract the @emph{real} error codes from GPGME output.
-;;
-;; @item *error-codes->errors*
-;;   A vhash of the information in @samp{*error-code-alist*}; created
-;;   from @samp{*error-code-alist*} at load time to provide faster
-;;   look-up times.
-;;
-;; @item *errors->error-codes*
-;;   A vhash indexed by error symbol rather than error code.  GPGME/G
-;;   is designed to use error symbols in the user-facing interface,
-;;   dispensing with the C idiom of integers-as-enumerations.  This
-;;   structure allows passing error codes back to GPGME if ever
-;;   necessary.
-;; @end table
 (load "error-codes.scm")
-
+(load "error-sources.scm")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public interface ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (error-code->error errno)
-  "\
-Translate the numeric error code @var{errno} to its corresponding
-error symbol."
-  (cdr (vhash-assq (modulo errno *gpg-err:code-dim*)
-		   *error-codes->errors*)))
+;; This is the default value for GPGME_ERR_SOURCE_DEFAULT
+
+(define *default-error-source*
+  error-source/user-1)
 
-(define (error->error-code err)
+
+(define (error-object? obj)
   "\
-Translate the error symbol @var{err} to its corresponding numeric
-error code."
-  (cdr (vhash-assq err *errors->error-codes*)))
+Return @code{#t} if @var{obj} is GPG error object, @code{#f} otherwise."
+  (error? obj))
 
-(define (describe-error err)
+
+(define (error-code err)
   "\
-Return a string describing the error symbol @var{err}."
-  (vhash-assq err *error-descriptions*))
+Return the code object associated with the error @var{err}."
+  (get-error-code err))
+
+
+(define (error-code-value err)
+  "\
+Return the numeric error code value of the error @var{err}."
+  (get-code-value (get-error-code err)))
+
+
+(define (error-code-description err)
+  "\
+Return the error code description, a string, for the error @var{err}."
+  (get-code-description (get-error-code err)))
+
+
+(define (error-source err)
+  "\
+Return the source object associated with the error @var{err}."
+  (get-error-source err))
+
+
+(define (error-source-value err)
+  "\
+Return the numeric error source value of the error @var{err}."
+  (get-source-value (get-error-source err)))
+
+
+(define (error-source-description err)
+  "\
+Return the error source description, a string, for the error @var{err}."
+  (get-source-description (get-error-source err)))
+
+
+(define* (make-error code #:optional (source *default-error-source*))
+  "\
+Return an error object with the value @var{code} from the source
+@var{source}.  @code{*default-error-source*} will be used if no
+@var{source} is provided.
+
+The default value of @code{*default-error-source*} is
+@code{error-source/user-1}.  This can be changed at any time by
+@cod{set!}ing @code{*default-error-source*}."
+  (cond ((not (error-code? code))
+         (scm-error 'gpg-invalid-error-code #f
+                    "\
+The object ~s is not an error code object"
+                    code #f))
+        ((not (error-source? source))
+         (scm-error 'gpg-invalid-error-source #f
+                    "\
+The object ~s is not an error source object"
+                    source #f))
+        (else
+         (make-gpg-error code source))))
+
+
+(define system-error->error
+  (let ((gpg-code-from-errno
+         (pointer->procedure
+          int
+          (dynamic-func "gpg_err_code_from_errno" gpg-error-lib)
+          (list int))))
+   (lambda* (errno #:optional (source *default-error-source*))
+     "\
+Return an error object translated from the system error value
+@var{errno} with the error source @var{source}.  If @var{errno} is not
+a recognized GPGME error, @code{error-code/unknown-errno} is used.
+@code{*default-error-source*} will be used if no @var{source} is
+provided."
+     (cond ((not (integer? errno))
+            (scm-error 'gpg-invalid-error-number #f
+                       "\
+The error value must be an integer: ~s" errno #f))
+           ((not (error-source? source))
+            (scm-error 'gpg-invalid-error-source #f
+                       "\
+The object ~s is not an error source object"
+                       source #f))
+           (else
+            (let ((err-code (gpg-code-from-errno errno)))
+              (make-gpg-error
+               (cdr (vhash-assq err-code *error-codes->errors*))
+               source)))))))
+
 ;;; Error code accessing and translation ;;;

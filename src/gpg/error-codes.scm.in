@@ -3,7 +3,7 @@
 ;;; A Guile binding to the GPGME library
 ;;; Error code definitions
 ;;;
-;;; Copyright © 2011, 2012 Atom X
+;;; Copyright © 2011, 2012, 2013 Atom X Zane
 ;;;
 ;;; This library is free software: you can redistribute it and/or
 ;;; modify it under the terms of the GNU General Public License as
@@ -43,7 +43,7 @@
 
 ;;; Code:
 
-(define-record-type gpg-error-code
+(define-immutable-record-type gpg-error-code
   (make-error-code code description)
   error-code?
   (code get-code-value)
@@ -60,14 +60,8 @@
 ;; error codes by this number, giving us the _real_ error.
 
 (define *error-codes->errors*
-  (alist->vhash *error-code-alist* hashq))
-
-(define *errors->error-codes*
   (alist->vhash
-   (map (lambda (lst)
-	  (cons (cdr lst) (car lst)))
-	*error-code-alist*)
+@@ERROR_CODE_LOOKUP@@
    hashq))
-
 
 ;;; error-codes.scm ends here
