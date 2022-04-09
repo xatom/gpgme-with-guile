@@ -50,7 +50,7 @@ retrieve_engine_info (SCM (*errno_to_symbol) (SCM))
   if (!err) {
     return engine_info;
   } else {
-    scm_error_scm (errno_to_symbol (scm_from_unsigned_integer ((scm_t_uintmax) err)),
+    scm_error_scm (errno_to_symbol (scm_from_unsigned_integer ((uintmax_t) err)),
 		   scm_from_locale_string ("retrieve_engine_info"),
 		   scm_from_locale_string ("An error was encountered when trying to retrieve the crytography engine information"),
 		   scm_list_n (SCM_UNDEFINED), /* An empty list */
